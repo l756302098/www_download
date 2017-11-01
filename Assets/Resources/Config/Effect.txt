@@ -1,0 +1,17 @@
+id	name	effects
+1	CameraFilterPack_AAA_Blood	Broken_Small:1
+2	CameraFilterPack_AAA_SuperHexagon	_BorderSize:1
+3	CameraFilterPack_Blizzard	_Speed:1
+4	CameraFilterPack_AAA_Blood	Broken_Small:1
+5	CameraFilterPack_Blend2Camera_Blend	BlendFX:1
+6	CameraFilterPack_Blend2Camera_HardMix	SwitchCameraToCamera2:1
+7	1	Broken_Small:1
+8	1	Broken_Small:1
+9	1	Broken_Small:1
+10	1	Broken_Small:1
+11	1	Broken_Small:1
+12	1	Broken_Small:1
+13	1	Broken_Small:1
+14	1	Broken_Small:1
+15	1	Broken_Small:1
+16	1	Broken_Small:1

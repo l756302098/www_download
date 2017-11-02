@@ -10,19 +10,25 @@ public class CameraRadomEffect : MonoBehaviour {
 
     public GameObject target;
 
-	// Use this for initialization
-	void Start () {
-      
+    // Use this for initialization
+    void Start()
+    {
+        InvokeRepeating("RandomEffect",1, 5);
     }
-	
-	// Update is called once per frame
-	void OnGUI () {
-        if (GUI.Button(new Rect(10,20,100,30),"Random")) {
-            RemoveForeScripts(target);
-            AddScripts(target,Excel_EffectArray.Instance().GetRandom());
-        }
-	}
 
+    // Update is called once per frame
+    //void OnGUI () {
+    //       if (GUI.Button(new Rect(10,20,100,30),"Random")) {
+    //           RemoveForeScripts(target);
+    //           AddScripts(target,Excel_EffectArray.Instance().GetRandom());
+    //       }
+    //}
+
+
+    public void RandomEffect() {
+        RemoveForeScripts(target);
+        AddScripts(target, Excel_EffectArray.Instance().GetRandom());
+    }
 
     public static void RemoveForeScripts(GameObject go) {
         MonoBehaviour[] mbs= go.GetComponents<MonoBehaviour>();

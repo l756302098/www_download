@@ -8,38 +8,21 @@ using UnityEngine.Video;
 
 public class DownloadPage : MonoBehaviour {
 
-    public static string PathURL;
-    public static string LocationPath;
-    public static string VideoPath;
-    private Dictionary<string, string> imageDic = new Dictionary<string, string>();
-    const string BaseURL = "http://192.168.4.179:1024/list";
-    const string FileUrl= "http://192.168.4.179:1024/get?name=";
-    private List<String> netUrl = new List<string>();      //原有的图片
-    private List<String> newNetUrl = new List<string>();   //新加入的图片
     public Image image;
     public VideoPlayer videoPlayer;
+    private int addIndex;
     private int index;
-    private bool isChecking, isDowning;
-    private bool hadNew;
     private ScreenFade sf;
+    public int startIndex;
+    public bool hadNew;
 
     void Awake() {
-        //test
-        //netUrl.Add("BingWallpaper-2017-08-14.jpg");
-        //netUrl.Add("BingWallpaper-2017-10-09.jpg");
         sf = gameObject.GetComponent<ScreenFade>();
         if (sf == null) sf = gameObject.AddComponent<ScreenFade>();
-        PathURL = Path.Combine(new DirectoryInfo(Application.dataPath).Parent.FullName, "Images");
-        LocationPath = "file:///"+ PathURL;
-        VideoPath = "file://" + PathURL.Replace('\\','/');
     }
 
     // Use this for initialization
     void Start () {
-        //检查本地文件
-        CheckImage();
-        //获取网络文件 /对比
-        InvokeRepeating("GetNetData",0,60);
         InvokeRepeating("AutoPlay",1,5);
     }
 
@@ -48,179 +31,132 @@ public class DownloadPage : MonoBehaviour {
     }
 
     private void AutoPlay() {
-        Debug.Log("AutoPlay.................");
-        if (isChecking || isDowning) return;
-        if (netUrl.Count == 0) {
+        //Debug.Log("AutoPlay.................");
+        if (NetWorkManager.netUrl.Count == 0) {
             return;
         }
-        index++;
+        addIndex+=4;
+        index = (addIndex + startIndex) % NetWorkManager.newNetUrl.Count;
         if (hadNew)
         {
-            if (index > newNetUrl.Count - 1)
+            if (index > NetWorkManager.newNetUrl.Count - 1)
             {
                 hadNew = false;
                 index = 0;
             }
-            //Debug.Log("index:"+ index+" Count:"+newNetUrl.Count);
-            StartCoroutine(DownloadImages(newNetUrl[index]));
+            NetWorkManager.Instance.AddDownloadTask(NetWorkManager.netUrl[index], this.Finish);
         }
         else {
-            if (index > netUrl.Count - 1)
+            if (index > NetWorkManager.netUrl.Count - 1)
             {
                 index = 0;
             }
-            StartCoroutine(DownloadImages(netUrl[index]));
+            NetWorkManager.Instance.AddDownloadTask(NetWorkManager.netUrl[index], this.Finish);
         }
     }
 
-    private void GetNetData() {
-        Debug.Log("GetNetData.................");
-        StartCoroutine(GetPath(BaseURL));
-    }
 
-    public IEnumerator DownloadImages(string url) {
-        bool isNet = false;
-        isDowning = true;
-        WWW www = null;
-        if (imageDic.ContainsKey(url))
+    public void Finish(byte[] data, bool isError, FileType type, string url)
+    {
+        //Debug.Log("Finish......................");
+        if (!isError)
         {
-            //替换本地路径
-            //Debug.Log("Load from location............");
-            www = new WWW(LocationPath + "/"+ url);
-
-        }
-        else {
-            isNet = true;
-            //Debug.Log("Load from network............"+ (FileUrl + WWW.EscapeURL(url)));
-            //www = new WWW(BaseURL + "get?name=" + url);
-            www = new WWW(FileUrl +WWW.EscapeURL(url));
-        }
-        //定义www为WWW类型并且等于所下载下来的WWW中内容。  
-        yield return www;
-        isDowning = false;
-        if (www.error != null)
-        {
-            Debug.LogError(www.error);
-        }else
-        {
-            if (isNet) imageDic.Add(url, "");
-            if (url.EndsWith(".mp4"))
-            {
-                sf.OnFadeOut();
-                Debug.Log("mp4.................");
-                SaveData(www.bytes, url);
-                videoPlayer.url = VideoPath + "/" + url;
-                videoPlayer.gameObject.SetActive(true);
-                image.gameObject.SetActive(false);
-                videoPlayer.Play();
-            }
-            else if (url.EndsWith(".jpg") || url.EndsWith("png"))
+            if (type == FileType.Image)
             {
                 sf.OnFadeOut();
                 videoPlayer.gameObject.SetActive(false);
                 image.gameObject.SetActive(true);
-                Texture2D newTexture = www.texture;
-                byte[] imageData = newTexture.EncodeToJPG();
-                if (image != null)
+                if (NetWorkManager.imageSize.ContainsKey(url))
                 {
-                    image.sprite = Sprite.Create(newTexture, new Rect(0, 0, newTexture.width, newTexture.height), new Vector2(0.5f, 0.5f));
-                }
-                SaveData(imageData,url);
-            }
-            else {
-                Debug.Log("url"+url+" 格式不支持!");
-            }
-        }      
-    }
-
-    private void SaveData(byte[] data,string name) {
-        if (!Directory.Exists(PathURL))
-        {
-            Directory.CreateDirectory(PathURL);
-        }
-        try
-        {
-            string path = PathURL + "/" + name;
-            File.WriteAllBytes(path, data);
-        }
-        catch (IOException e)
-        {
-            print(e);
-        }
-    }
-
-    public IEnumerator GetPath(string url)
-    {
-        isChecking = true;
-        //Debug.Log("GetPath url:"+ url);
-        WWW www = new WWW(url);
-        //定义www为WWW类型并且等于所下载下来的WWW中内容。  
-        yield return www;
-        if (www.error != null)
-        {
-            Debug.LogError(www.error);
-        }
-        else {
-            string names = www.text;
-            //Debug.Log("www.data:"+www.text);
-            isChecking = false;
-            //get
-            string[] allUrl = names.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            if (allUrl != null && allUrl.Length != 0) {
-                //compare add
-                List<string> addUrl = null;
-                for (int i = allUrl.Length - 1; i >= 0; i--)
-                {
-                    bool isContain = false;
-                    for (int j = 0; j < netUrl.Count; j++)
+                   
+                    Vector2 size = NetWorkManager.imageSize[url];
+                    Texture2D newTexture = new Texture2D((int)size.x, (int)size.y);
+                    //Debug.Log("SizeToFit....................w "+ size.x+" h:"+ size.y);
+                    newTexture.LoadImage(data);
+                    if (image != null)
                     {
-                        if (netUrl[j] == allUrl[i])
+                        image.sprite = Sprite.Create(newTexture, new Rect(0, 0, (int)size.x, (int)size.y), new Vector2(0.5f, 0.5f));
+                        image.GetComponent<RectTransform>().sizeDelta = new Vector2((int)size.x, (int)size.y);
+                    }
+                    //SizeToFit
+                    float defaultPixel =   (float)defaultWidth/defaultHeight;
+                    float pixel = size.x / size.y;
+                    if (pixel < defaultPixel)
+                    {
+                        //宽小 以宽为基准
+                        if (defaultWidth > size.x)
                         {
-                            isContain = true;
-                            continue;
+                            float multiple = defaultWidth / size.x;
+                            image.GetComponent<RectTransform>().localScale = new Vector3(multiple, multiple, 1);
+                            //Debug.Log("宽小 multiple " + multiple);
+                        }
+                        else
+                        {
+                            float multiple = 1;
+                            image.GetComponent<RectTransform>().localScale = new Vector3(multiple, multiple, 1);
+                            //Debug.Log("宽小 multiple " + multiple);
                         }
                     }
-                    if (!isContain) {
-                        if (addUrl == null)
-                            addUrl = new List<string>();
-                        addUrl.Add(allUrl[i]);
+                    else if (pixel > defaultPixel)
+                    {
+                        //高小
+                        if (defaultHeight > size.y)
+                        {
+                            float multiple = defaultHeight / size.y;
+                            image.GetComponent<RectTransform>().localScale = new Vector3(1 / multiple, 1 / multiple, 1);
+                           // Debug.Log("高小 multiple " + multiple);
+                        }
+                        else
+                        {
+                            float multiple = 1;
+                            image.GetComponent<RectTransform>().localScale = new Vector3(multiple, multiple, 1);
+                            //Debug.Log("高小 multiple " + multiple);
+                        }
+                    }
+                    else {
+                        if (defaultHeight > size.y)
+                        {
+                            float multiple = defaultHeight / size.y;
+                            image.GetComponent<RectTransform>().localScale = new Vector3( 1/multiple, 1/multiple, 1);
+                        }
+                        else
+                        {
+                            float multiple = defaultHeight/ size.y;
+                            image.GetComponent<RectTransform>().localScale = new Vector3(multiple, multiple, 1);
+                        }
                     }
                 }
-                if (addUrl != null) newNetUrl = addUrl;
-                netUrl = new List<String>(allUrl);
-                if (newNetUrl.Count != 0) {
-                    index = -1;
-                    hadNew = true;
+                else {
+                    //Debug.Log("Default...........................");
+                    Texture2D newTexture = new Texture2D(defaultWidth, defaultHeight);
+                    newTexture.LoadImage(data);
+                    if (image != null)
+                    {
+                        image.sprite = Sprite.Create(newTexture, new Rect(0, 0, defaultWidth, defaultHeight), new Vector2(0.5f, 0.5f));
+                    }
                 }
-                Debug.Log("newNetUrl Count:"+ newNetUrl.Count);
-                //for (int i = 0; i < newNetUrl.Count; i++)
-                //{
-                //    Debug.Log("index "+i+ " data:"+ newNetUrl[i]);
-                //}
+               
+            }
+            else if (type == FileType.Video)
+            {
+                sf.OnFadeOut();
+                videoPlayer.url = NetWorkManager.VideoPath + "/" + url;
+                videoPlayer.gameObject.SetActive(true);
+                image.gameObject.SetActive(false);
+                videoPlayer.Play();
             }
         }
     }
 
-    private void CheckImage() {        
-        string path = PathURL;
-        path.Replace('/','\\');
-        if (Directory.Exists(PathURL)) {
-            var files = Directory.GetFiles(@PathURL, "*.png");
-            foreach (var file in files)
-            {
-                Debug.Log(file);
-                string[] spStr = file.Split('\\');
-                if (spStr != null)
-                {
-                    String cName = spStr[spStr.Length - 1];
-                    //Debug.Log("name:"+ cName+ " file:" + file);
-					imageDic.Add(cName, "");
-                }
-            }
-        }
-        
-    }
+    private int defaultWidth=1920;
+    private int defaultHeight = 1080;
 
 }
 
+
+public enum FileType {
+Video,
+Image,
+Other
+} 
 

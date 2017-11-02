@@ -3,7 +3,7 @@ using System.Collections;
 
 public class ScreenFade : MonoBehaviour {
 
-    private float fadeTime = 1.0f;
+    private float fadeTime = 0.5f;
     public Color fadeColor = new Color(0.01f, 0.01f, 0.01f, 1.0f);
 
     private Material fadeMaterial;
@@ -42,7 +42,7 @@ public class ScreenFade : MonoBehaviour {
 
     public void OnFadeOut() {
       //  Debug.Log("OnFadeOut.................");
-        StartCoroutine(FadeOut());
+       // StartCoroutine(FadeOut());
     }
 
     void OnDestroy()

@@ -1,5 +1,7 @@
 # www_download
-1.DownloadPage 从网络或本地下载数据兵保存到本地，显示 
+
+1.DownloadPage添加下载任务到NetWorkManager，NetWorkManager管理协程下载完成并保存同时触发回调 
+  NetWorkManager下载完成转换图片为bitmap获取图片原始的高度，DownloadPage模拟SizeToFit,自适应宽高
 ---------------------------------------------------
 2.Camera Filter Pack 为镜头特效的package, https://www.assetstore.unity3d.com/cn/#!/content/18433 
 ---------------------------------------------------

@@ -6,6 +6,7 @@ using System;
 using UnityEngine.UI;
 using UnityEngine.Video;
 using System.Drawing;
+using System.Linq;
 
 public delegate void DownloadFinish(byte[] data, bool isError, FileType type,string url);
 
@@ -63,12 +64,17 @@ public class NetWorkManager : MonoBehaviour {
         CheckImage();
         //获取网络文件 /对比
         InvokeRepeating("GetNetData", 0, 60);
+        InvokeRepeating("UnLoadTExture",30,20);
     }
 
     void OnDestroy()
     {
         Instance = null;
         CancelInvoke();
+    }
+
+    void UnLoadTExture() {
+        Resources.UnloadUnusedAssets();
     }
 
     private void GetNetData()
@@ -234,7 +240,7 @@ public class NetWorkManager : MonoBehaviour {
                 {
                     hadNew = true;
                 }
-                Debug.Log("newNetUrl Count:" + newNetUrl.Count);
+                //Debug.Log("newNetUrl Count:" + newNetUrl.Count);
                 //for (int i = 0; i < newNetUrl.Count; i++)
                 //{
                 //    Debug.Log("index "+i+ " data:"+ newNetUrl[i]);
@@ -268,6 +274,15 @@ public class NetWorkManager : MonoBehaviour {
     public void SaveSize(string  url, byte[] data) {
         MemoryStream ms1 = new MemoryStream(data);
         Bitmap bm = (Bitmap)System.Drawing.Image.FromStream(ms1);
+
+
+        var exif = bm.PropertyItems;
+        byte orien = 0;
+        var item = exif.Where(m => m.Id == 274).ToArray();
+        if (item.Length > 0)
+            orien = item[0].Value[0];
+        //Debug.Log("orien:"+ orien);
+
         ms1.Close();
         //Debug.Log("Width:"+bm.Width+" height:"+bm.Height);
         if (!imageSize.ContainsKey(url)) {
